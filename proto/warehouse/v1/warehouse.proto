@@ -1,0 +1,124 @@
+
+syntax = "proto3";
+
+package warehouse.v1;
+
+option go_package = "github.com/mouhamamd-kl/warehouse-service/gen/warehouse/v1;warehousev1";
+
+service WarehouseService {
+  rpc CreateInventory(CreateInventoryRequest) returns (InventoryResponse);
+  rpc GetInventory(GetInventoryRequest) returns (InventoryResponse);
+  rpc GetAllInventory(ListInventoryRequest) returns (ListInventoryResponse);
+  rpc GetLowStock(ListInventoryRequest) returns (ListInventoryResponse);
+
+  rpc AdjustStock(AdjustStockRequest) returns (InventoryResponse);
+  rpc GetMovements(GetMovementsRequest) returns (GetMovementsResponse);
+
+  rpc ReserveStock(ReserveStockRequest) returns (ReservationResponse);
+  rpc GetReservation(GetReservationRequest) returns (ReservationResponse);
+  rpc ReleaseReservation(ReleaseReservationRequest) returns (ReservationResponse);
+  rpc ConfirmReservation(ConfirmReservationRequest) returns (ReservationResponse);
+}
+
+message CreateInventoryRequest {
+  int64 product_id = 1;
+  int64 quantity_on_hand = 2;
+  int64 low_stock_threshold = 3;
+}
+
+message GetInventoryRequest {
+  int64 product_id = 1;
+}
+
+message ListInventoryRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message InventoryResponse {
+  int64 id = 1;
+  int64 product_id = 2;
+  int64 quantity_on_hand = 3;
+  int64 quantity_reserved = 4;
+  int64 available_quantity = 5;
+  int64 low_stock_threshold = 6;
+  bool is_low_stock = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message ListInventoryResponse {
+  repeated InventoryResponse items = 1;
+  int64 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+
+message AdjustStockRequest {
+  int64 product_id = 1;
+  int64 quantity = 2;
+  string operation = 3;
+  string reason = 4;
+  string reference_id = 5;
+  string idempotency_key = 6;
+}
+
+
+message GetMovementsRequest {
+  int64 product_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message MovementResponse {
+  int64 id = 1;
+  int64 inventory_id = 2;
+  int64 product_id = 3;
+  string type = 4;
+  int64 quantity = 5;
+  int64 quantity_before = 6;
+  int64 quantity_after = 7;
+  string reason = 8;
+  string reference_id = 9;
+  string created_at = 10;
+}
+
+message GetMovementsResponse {
+  repeated MovementResponse items = 1;
+  int64 total = 2;
+}
+
+message ReserveStockRequest {
+  string order_id = 1;
+  string idempotency_key = 2;
+  repeated ReservationItem items = 3;
+  int64 expires_in_seconds = 4;
+}
+
+message ReservationItem {
+  int64 product_id = 1;
+  int64 quantity = 2;
+}
+
+message GetReservationRequest {
+  string reservation_id = 1;
+}
+
+message ReleaseReservationRequest {
+  string reservation_id = 1;
+  string reason = 2;
+}
+
+message ConfirmReservationRequest {
+  string reservation_id = 1;
+}
+
+message ReservationResponse {
+  string id = 1;
+  string order_id = 2;
+  string status = 3;
+  repeated ReservationItem items = 4;
+  string expires_at = 5;
+  string created_at = 6;
+}

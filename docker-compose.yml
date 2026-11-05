@@ -1,0 +1,71 @@
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: warehouse-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: warehouse
+      POSTGRES_PASSWORD: warehouse_password
+      POSTGRES_DB: warehouse_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - warehouse_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U warehouse -d warehouse_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: warehouse-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - warehouse_redis_data:/data
+
+  migrate:
+    image: postgres:17-alpine
+    restart: "no"
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: warehouse
+      PGPASSWORD: warehouse_password
+      PGDATABASE: warehouse_db
+    volumes:
+      - ./migrations:/migrations:ro
+      - ./docker/migrate.sh:/scripts/migrate.sh:ro
+    entrypoint: ["/bin/sh", "/scripts/migrate.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  warehouse:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      GRPC_PORT: 50051
+      REPOSITORY_DRIVER: postgres
+      DATABASE_URL: postgres://warehouse:warehouse_password@postgres:5432/warehouse_db?sslmode=disable
+    ports:
+      - "50051:50051"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - default
+      - ecommerce
+
+networks:
+  ecommerce:
+    name: ecommerce-warehouse
+
+volumes:
+  warehouse_postgres_data:
+  warehouse_redis_data:
